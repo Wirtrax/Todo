@@ -1,17 +1,25 @@
-export const Field = () => {
+export const Field = (props) => {
+    const {
+        className = '',
+        id,
+        label,
+        type = 'text',
+    } = props;
+
     return (
-        <div className="todo__field field">
+        <div className={`field ${className}`}>
             <label
                 className="field__label"
-                htmlFor="new-task"
+                htmlFor={id}
             >
-                New task
+
             </label>
             <input
                 className="field__input"
-                id="new-task"
-                placeholder=" "
+                id={id}
+                placeholder={label}
                 autoComplete="off"
+                type={type}
             />
         </div>
     )
