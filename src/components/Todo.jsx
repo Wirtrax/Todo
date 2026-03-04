@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AddTaskForm from "./AddTaskForm"
 import SearchTaskForm from "./SearchTaskForm"
 import TodoInfo from "./TodoInfo"
 import TodoList from "./TodoList"
+import { Button } from "./Button"
 const Todo = () => {
 
     const tasksApi = [
@@ -21,28 +22,40 @@ const Todo = () => {
         }
         return tasksApi
     })
+    const newInputTaskRef = useRef(null)
+    const firstIncompleteTaskRef = useRef(null)
+    const firstIncompleteTaskId = tasks.find(({ isDone }) => !isDone)?.id
 
+    useEffect(() => {
+        newInputTaskRef.current.focus()
+    }, [])
 
-    const deleteAllTask = () => {
-        console.log("deleteAll");
+    useEffect(() => {
+        localStorage.setItem('tasks', JSON.stringify(tasks))
+    }, [tasks])
 
+    const doneTasks = useMemo(() => {
+        return tasks.filter(({ isDone }) => isDone).length
+    }, [tasks])
+
+    const deleteAllTask = useCallback(() => {
         const isConfiremed = confirm("are you sure you want delete all?")
 
         if (isConfiremed) {
             setTasks([])
         }
-    }
+    }, [])
 
-    const deleteTask = (taskId) => {
-        console.log(`deleteTask id: ${taskId}`);
+    const deleteTask = useCallback((taskId) => {
+
 
         setTasks(
             tasks.filter((task) => task.id !== taskId)
         )
-    }
+    }, [tasks])
 
-    const toggleTaskComplete = (taskId, isDone) => {
-        console.log(`задача ${taskId} имеет статус ${isDone}`)
+    const toggleTaskComplete = useCallback((taskId, isDone) => {
+
 
         setTasks(
             tasks.map((task) => {
@@ -53,12 +66,12 @@ const Todo = () => {
                 return task
             })
         )
-    }
+    }, [tasks])
 
     const addTask = () => {
         if (newTaskTitle.trim().length > 0) {
             const newTask = {
-                id: crypto?.randomUUID ?? Date.now().toString(),
+                id: crypto?.randomUUID() ?? Date.now().toString(),
                 title: newTaskTitle,
                 isDone: false
             }
@@ -67,18 +80,16 @@ const Todo = () => {
 
             setNewTaskTitle('')
             setSearchQuery('')
+            newInputTaskRef.current.focus()
         }
     }
 
-    useEffect(() => {
-        localStorage.setItem('tasks', JSON.stringify(tasks))
-    }, [tasks])
-
-    const clearSearchQuery = searchQuery.trim().toLocaleLowerCase();
-
-    const filteredTasks = clearSearchQuery.length > 0 ? tasks.filter(
-        ({ title }) => title.toLocaleLowerCase().includes(clearSearchQuery)
-    ) : null;
+    const filteredTasks = useMemo(() => {
+        const clearSearchQuery = searchQuery.trim().toLocaleLowerCase();
+        return clearSearchQuery.length > 0 ? tasks.filter(
+            ({ title }) => title.toLocaleLowerCase().includes(clearSearchQuery)
+        ) : null
+    }, [searchQuery, tasks])
 
     return (
         <section className="todo">
@@ -87,14 +98,20 @@ const Todo = () => {
                 addTask={addTask}
                 newTaskTitle={newTaskTitle}
                 setNewTaskTitle={setNewTaskTitle}
+                newInputTaskRef={newInputTaskRef}
             />
             <SearchTaskForm
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
             />
+            <Button
+                onClick={() => firstIncompleteTaskRef.current?.scrollIntoView({ behavior: "smooth" })}
+            >
+                Show first incomplete task
+            </Button>
             <TodoInfo
                 total={tasks.length}
-                done={tasks.filter(({ isDone }) => isDone).length}
+                done={doneTasks}
                 onDeleteAllButtonClick={deleteAllTask}
             />
             <TodoList
@@ -102,6 +119,8 @@ const Todo = () => {
                 filteredTasks={filteredTasks}
                 onDeleteTaskButtonClick={deleteTask}
                 onTaskCompleteChange={toggleTaskComplete}
+                firstIncompleteTaskRef={firstIncompleteTaskRef}
+                firstIncompleteTaskId={firstIncompleteTaskId}
             />
         </section>
     );
